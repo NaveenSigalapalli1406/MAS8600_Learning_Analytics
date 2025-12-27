@@ -1,0 +1,25 @@
+# R-specific files
+*.Rproj
+.Rhistory
+.RData
+.Ruser
+.Rproj.user
+.Renviron
+# Output files
+*.pdf
+*.html
+*.docx
+*.xlsx
+# Directories
+cache/
+*_cache/
+.Rproj.user/
+*.Rcheck/
+.Rprofile
+# System files
+.DS_Store
+Thumbs.db
+# Temporary files
+*.tmp
+*.swp
+*~
