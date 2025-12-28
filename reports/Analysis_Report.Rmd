@@ -1,0 +1,52 @@
+---
+title: "MAS8600 Learning Analytics Analysis"
+author: "Naveen Siagalapalli"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+# Set global chunk options
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+# Load the project using ProjectTemplate
+# Munging is set to FALSE in global.dcf to use cached data as per best practice
+library(ProjectTemplate)
+setwd("..") # Move to project root to load project
+load.project()
+setwd("reports") # Move back to reports directory for relative paths
+```
+
+# CRISP-DM Cycle 1
+
+## Business Understanding
+
+The primary stakeholder for this investigation is the course provider, namely Newcastle University and the FutureLearn platform team responsible for the design, delivery, and continuous improvement of the MOOC *“Cyber Security: Safety at Home, Online, and in Life.”* From a learning analytics perspective, the stakeholder is interested in understanding how learners interact with the course content beyond simple enrolment numbers, with the aim of improving learner engagement, retention, and overall course effectiveness.
+
+The business question addressed in the first CRISP-DM cycle is: **how do learners engage with the course content across the different weeks of the MOOC, and at which points do significant drop-offs in engagement occur?** This question is exploratory in nature and focuses on understanding high-level patterns of learner behaviour rather than explaining causal mechanisms. It provides a foundation for more targeted investigation in a subsequent analysis cycle.
+
+This question is important to the stakeholder because MOOCs typically experience high enrolment but low completion rates. Understanding when and where learners disengage allows course designers to identify potentially problematic sections of the course, such as weeks with excessive cognitive load, less engaging content types, or poorly aligned assessments. Insights from this analysis can inform redesign decisions, improve learner support strategies, and ultimately enhance learner outcomes and satisfaction.
+
+The success of this first investigation will be determined by the ability to clearly describe and compare learner engagement levels across the different weeks of the course, to identify observable drop-off patterns, and to communicate these findings in a reproducible and interpretable manner. The analysis does not need to optimise engagement or predict learner outcomes at this stage; rather, it should provide a clear, data-driven overview that can motivate a more focused second CRISP-DM cycle.
+
+## Data Understanding
+
+The data used in this investigation consist of raw learner interaction data collected from seven runs of the FutureLearn MOOC *“Cyber Security: Safety at Home, Online, and in Life.”* These datasets record how individual learners progress through the course, including their interactions with different steps, weeks, and content types. Learner identifiers allow information from multiple data tables to be linked, enabling analysis of engagement patterns across the course structure.
+
+At this stage, the analysis focuses on datasets that capture learner participation at the course and step level, as these are most relevant to understanding engagement and drop-off across weeks. Key variables of interest include learner identifiers, course run identifiers, week or step information, timestamps of interactions, and indicators of whether a learner viewed or completed a given step. These variables allow engagement to be summarised and compared at an aggregate level without requiring detailed modelling.
+
+Initial inspection of the data shows that the datasets are large, with many rows corresponding to individual learner–step interactions and multiple columns describing learner actions and metadata. The data include a mixture of categorical variables (such as step type or course run), numeric variables (such as counts of interactions), and date-time variables. As is typical for MOOC data, not all learners interact with all steps, resulting in missing values and highly uneven participation across the course.
+
+Potential data quality issues include incomplete learner trajectories, missing timestamps for some interactions, and learners who enrol but never meaningfully engage with the course content. These issues are expected in large-scale online learning datasets and will be acknowledged in the analysis. For this cycle, such cases will not be removed unless necessary, as the presence of non-engaged learners is itself informative for understanding drop-off patterns.
+
+## Data Preparation
+
+Data preparation was carried out programmatically using the `ProjectTemplate` workflow and the `dplyr` package to ensure reproducibility and transparency. The raw data from all seven runs were processed through three main stages:
+
+1.  **Engagement Aggregation:** The `step-activity` datasets were processed to determine learner engagement at the week level. A learner was considered "engaged" in a step if they had either a `first_visited_at` or `last_completed_at` timestamp. These interactions were then aggregated by `learner_id` and `week_number` to calculate weekly engagement rates (steps engaged vs. steps available).
+2.  **Demographic Standardization:** Enrolment data were cleaned by standardizing missing values in the `country`, `age_range`, and `gender` columns to "Unknown". Completion status was derived from the `fully_participated_at` column, where a non-missing value indicated course completion.
+3.  **Retention Metrics Calculation:** Using the aggregated engagement data, we calculated summary statistics for each run. This included the number of active learners per week and the average engagement rate. Crucially, we derived two key metrics:
+    *   **Retention Rate:** The proportion of learners active in a given week relative to the number of learners active in Week 1 of that run.
+    *   **Week-to-Week Drop-off:** The percentage decrease in active learners from the previous week, calculated using the `lag()` function.
+
+All transformations were performed without manual data loading, relying on `ProjectTemplate`'s automated loading and caching system. The resulting datasets (`weekly_engagement`, `enrolments_clean`, and `dropoff_analysis`) were cached to the `cache/` directory to support efficient and reproducible analysis in subsequent stages.
