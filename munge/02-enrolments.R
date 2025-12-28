@@ -12,30 +12,39 @@ for(run_num in 1:7) {
   
   if(exists(dataset_name)) {
     # Get the dataset and process using dplyr pipes
-    df_processed <- get(dataset_name) %>%
-      mutate(
-        run_id = run_num,
-        # Convert enrolment date to Date object
-        enrolled_at = as.Date(enrolled_at),
-        # Derive completion status from fully_participated_at column
-        # A non-missing value in fully_participated_at indicates the learner completed the course
-        is_completed = if_else(!is.na(fully_participated_at), "Completed", "Not Completed"),
-        # Standardize missing demographic values
-        country = if_else(is.na(country) | country == "Unknown", "Unknown", country),
-        age_range = if_else(is.na(age_range) | age_range == "Unknown", "Unknown", age_range),
-        # Handle gender column: normalize to lowercase to ensure consistency across runs
-        gender = if_else(is.na(gender) | gender == "Unknown", "Unknown", tolower(gender))
-      ) %>%
-      # Select only the columns needed for analysis to save memory
-      select(learner_id, run_id, enrolled_at, is_completed, country, age_range, gender)
+    df_raw <- get(dataset_name)
     
-    # Store in list
-    enrolments_list[[run_num]] <- df_processed
+    # Defensive check: Ensure required columns exist
+    required_cols <- c("learner_id", "enrolled_at", "fully_participated_at", "country", "age_range", "gender")
+    if(all(required_cols %in% colnames(df_raw))) {
+      df_processed <- df_raw %>%
+        mutate(
+          run_id = run_num,
+          # Convert enrolment date to Date object
+          enrolled_at = as.Date(enrolled_at),
+          # Derive completion status from fully_participated_at column
+          # A non-missing value in fully_participated_at indicates the learner completed the course
+          is_completed = if_else(!is.na(fully_participated_at), "Completed", "Not Completed"),
+          # Standardize missing demographic values
+          country = if_else(is.na(country) | country == "Unknown", "Unknown", country),
+          age_range = if_else(is.na(age_range) | age_range == "Unknown", "Unknown", age_range),
+          # Handle gender column: normalize to lowercase to ensure consistency across runs
+          gender = if_else(is.na(gender) | gender == "Unknown", "Unknown", tolower(gender))
+        ) %>%
+        # Select only the columns needed for analysis to save memory
+        select(learner_id, run_id, enrolled_at, is_completed, country, age_range, gender)
+      
+      # Store in list
+      enrolments_list[[run_num]] <- df_processed
+    }
   }
 }
 
 # Combine all runs into a single master enrolments data frame
 enrolments_clean <- bind_rows(enrolments_list)
+
+# Cache the processed data
+cache("enrolments_clean")
 
 # Clean up temporary list
 rm(enrolments_list)

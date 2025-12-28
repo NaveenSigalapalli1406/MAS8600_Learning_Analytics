@@ -19,7 +19,12 @@ if(exists("weekly_engagement") && exists("enrolments_clean")) {
       .groups = "drop"
     ) %>%
     group_by(gender) %>%
-    mutate(retention_rate = learners_active / first(learners_active)) %>%
+    mutate(
+      # Initial cohort size (Week 1)
+      cohort_size = first(learners_active),
+      # Retention rate: current active learners / learners active in Week 1
+      retention_rate = learners_active / cohort_size
+    ) %>%
     ungroup()
     
   # Cache the final joined data for the report

@@ -28,5 +28,8 @@ if(exists("weekly_engagement")) {
     select(-prev_learners) %>%
     ungroup()
     
+  # Cache the analysis results
+  cache("dropoff_analysis")
+    
   # Note: week_to_week_dropoff will be NA for Week 1 of each run
 }

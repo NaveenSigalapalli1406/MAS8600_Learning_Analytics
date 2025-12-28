@@ -1,0 +1,20 @@
+# Project TODO List
+
+## Completed Tasks
+- [x] Initialize ProjectTemplate structure
+- [x] Create munge scripts (01-04) with dplyr and defensive checks
+- [x] Implement caching for all processed datasets
+- [x] Draft Analysis_Report.Rmd following CRISP-DM
+- [x] Add Modeling and Data Analysis sections for Cycle 1 and Cycle 2
+- [x] Implement ggplot2 visualizations with discrete axes and percent formatting
+- [x] Address feedback regarding setwd(), library loading, and variable naming
+- [x] Add methodological caveats regarding normalization and sample sizes
+- [x] Normalize gender data to lowercase
+- [x] Include cohort size table (Table 1) in the report
+- [x] Add explicit "Interpretation Risk" section to Evaluation
+- [x] Add plot warnings (subtitle and caption) for small sample sizes
+
+## Remaining Steps
+- [ ] Run load.project() in R console to refresh cache with new logic
+- [ ] Final review of the generated Word document
+- [ ] Final Git commit and push

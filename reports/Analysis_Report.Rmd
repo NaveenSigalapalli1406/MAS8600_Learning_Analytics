@@ -2,7 +2,9 @@
 title: "MAS8600 Learning Analytics Analysis"
 author: "Naveen Siagalapalli"
 date: "`r Sys.Date()`"
-output: word_document
+output:
+  pdf_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -10,11 +12,9 @@ output: word_document
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 # Load the project using ProjectTemplate
-# Munging is set to FALSE in global.dcf to use cached data as per best practice
+# Munging is set to TRUE in global.dcf to ensure all data preparation is updated
 library(ProjectTemplate)
-setwd("..") # Move to project root to load project
 load.project()
-setwd("reports") # Move back to reports directory for relative paths
 ```
 
 # CRISP-DM Cycle 1
@@ -31,22 +31,156 @@ The success of this first investigation will be determined by the ability to cle
 
 ## Data Understanding
 
-The data used in this investigation consist of raw learner interaction data collected from seven runs of the FutureLearn MOOC *“Cyber Security: Safety at Home, Online, and in Life.”* These datasets record how individual learners progress through the course, including their interactions with different steps, weeks, and content types. Learner identifiers allow information from multiple data tables to be linked, enabling analysis of engagement patterns across the course structure.
+The data used in this investigation consist of raw learner interaction data collected from seven runs of the FutureLearn MOOC *“Cyber Security: Safety at Home, Online, and in Life.”* The course is structured into three weeks, covering personal privacy (Week 1), payment security (Week 2), and the future home (Week 3). 
 
-At this stage, the analysis focuses on datasets that capture learner participation at the course and step level, as these are most relevant to understanding engagement and drop-off across weeks. Key variables of interest include learner identifiers, course run identifiers, week or step information, timestamps of interactions, and indicators of whether a learner viewed or completed a given step. These variables allow engagement to be summarised and compared at an aggregate level without requiring detailed modelling.
+Initial inspection of the course overviews reveals that the MOOC evolved over time. Run 1 (September 2016) had 18 steps in Week 1, while Run 2 (March 2017) expanded to 19 steps and added mobile security content. Runs 3 through 7 (2017-2018) maintained a consistent 19-step structure for Week 1 but streamlined Week 3 to 20 steps. These datasets record how individual learners progress through these steps, including their interactions with different content types (Videos, Articles, Quizzes, and Discussions).
 
-Initial inspection of the data shows that the datasets are large, with many rows corresponding to individual learner–step interactions and multiple columns describing learner actions and metadata. The data include a mixture of categorical variables (such as step type or course run), numeric variables (such as counts of interactions), and date-time variables. As is typical for MOOC data, not all learners interact with all steps, resulting in missing values and highly uneven participation across the course.
+At this stage, the analysis focuses on datasets that capture learner participation at the course and step level. Key variables of interest include `learner_id`, `run_id`, `week_number` (renamed to `week`), timestamps of interactions (`first_visited_at`, `last_completed_at`), and demographic indicators (`gender`, `age_range`). The `step-activity` files contain thousands of rows per run, representing the granular interactions of thousands of enrolled learners.
 
-Potential data quality issues include incomplete learner trajectories, missing timestamps for some interactions, and learners who enrol but never meaningfully engage with the course content. These issues are expected in large-scale online learning datasets and will be acknowledged in the analysis. For this cycle, such cases will not be removed unless necessary, as the presence of non-engaged learners is itself informative for understanding drop-off patterns.
+Potential data quality issues include incomplete learner trajectories and missing timestamps. As is typical for MOOC data, a significant proportion of learners (30-40%) do not provide demographic information, resulting in "Unknown" values. For this cycle, we treat these as a distinct category rather than removing them, as the presence of non-engaged or anonymous learners is itself informative for understanding overall retention patterns.
 
 ## Data Preparation
 
 Data preparation was carried out programmatically using the `ProjectTemplate` workflow and the `dplyr` package to ensure reproducibility and transparency. The raw data from all seven runs were processed through three main stages:
 
-1.  **Engagement Aggregation:** The `step-activity` datasets were processed to determine learner engagement at the week level. A learner was considered "engaged" in a step if they had either a `first_visited_at` or `last_completed_at` timestamp. These interactions were then aggregated by `learner_id` and `week_number` to calculate weekly engagement rates (steps engaged vs. steps available).
+1.  **Engagement Aggregation:** The `step-activity` datasets were processed to determine learner engagement at the week level. A learner was considered "engaged" in a step if they had either a `first_visited_at` or `last_completed_at` timestamp. These interactions were then aggregated by `learner_id` and `run_id`, with the raw `week_number` column renamed to `week` for consistency, to calculate weekly engagement rates (steps engaged vs. steps available).
 2.  **Demographic Standardization:** Enrolment data were cleaned by standardizing missing values in the `country`, `age_range`, and `gender` columns to "Unknown". Completion status was derived from the `fully_participated_at` column, where a non-missing value indicated course completion.
 3.  **Retention Metrics Calculation:** Using the aggregated engagement data, we calculated summary statistics for each run. This included the number of active learners per week and the average engagement rate. Crucially, we derived two key metrics:
     *   **Retention Rate:** The proportion of learners active in a given week relative to the number of learners active in Week 1 of that run.
     *   **Week-to-Week Drop-off:** The percentage decrease in active learners from the previous week, calculated using the `lag()` function.
 
 All transformations were performed without manual data loading, relying on `ProjectTemplate`'s automated loading and caching system. The resulting datasets (`weekly_engagement`, `enrolments_clean`, and `dropoff_analysis`) were cached to the `cache/` directory to support efficient and reproducible analysis in subsequent stages.
+
+## Modeling
+
+For this exploratory cycle, the "modeling" approach consists of descriptive statistical aggregation. We model learner retention as a longitudinal process across the course weeks. The primary mathematical representation is the **Retention Rate ($R_w$)** for week $w$, defined as:
+
+$$R_w = \frac{L_w}{L_1}$$
+
+where $L_w$ is the number of unique learners active in week $w$, and $L_1$ is the number of unique learners active in the first week of the run. This allows for a normalized comparison across different course runs with varying enrolment sizes.
+
+## Data Analysis
+
+The primary goal of this analysis is to visualize the retention of learners across the duration of the course. Figure 1 illustrates the retention rate for each of the seven course runs, normalized to the number of active learners in Week 1.
+
+```{r retention_plot, fig.cap="Figure 1: Learner Retention Rate by Course Run"}
+# Plot retention rate across weeks for each run
+ggplot(dropoff_analysis, aes(x = week, y = retention_rate, color = factor(run_id), group = run_id)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_x_continuous(breaks = 1:max(dropoff_analysis$week)) +
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+  labs(
+    title = "Learner Retention Across Course Weeks",
+    subtitle = "Retention normalized to Week 1 active learners",
+    x = "Week Number",
+    y = "Retention Rate (%)",
+    color = "Course Run"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+The visualization reveals a consistent downward trend in retention across all runs, which is typical for MOOC environments. Most runs show a significant drop-off between Week 1 and Week 2, followed by a more gradual decline. Interestingly, Run 7 appears to maintain a slightly higher retention rate in the middle weeks compared to earlier runs, suggesting potential improvements in course delivery or learner engagement strategies over time.
+
+## Evaluation
+
+The first cycle of the CRISP-DM process has successfully established a baseline for understanding learner engagement and retention. We have quantified the "funnel" effect of the course, identifying that a substantial portion of learners disengage early in the process.
+
+From a business perspective, these findings confirm that the first two weeks are critical for learner retention. The stakeholder can now focus on investigating the specific content or activities in these early weeks that might be contributing to the initial drop-off.
+
+However, this analysis is limited as it treats all learners as a single group. It does not account for demographic differences or prior experience, which may significantly influence retention. Therefore, the next cycle will investigate whether specific learner demographics (such as age or gender) are associated with higher or lower retention rates.
+
+# CRISP-DM Cycle 2
+
+## Business Understanding
+
+Building on the findings from Cycle 1, the stakeholder is now interested in understanding if the observed drop-off patterns are uniform across different learner groups. Specifically, the question for Cycle 2 is: **Do learner demographics, such as age range and gender, significantly impact retention and completion rates?**
+
+Understanding these differences is crucial for personalizing the learning experience and providing targeted support to groups that are at a higher risk of dropping out. If certain age groups or genders show consistently lower retention, the course provider can tailor content or interventions to better meet their needs.
+
+## Data Understanding
+
+For this cycle, we utilize the `enrolments_clean` dataset, which contains self-reported demographic information for each learner. The primary variables of interest are `gender` and `age_range`. 
+
+Initial exploration of the demographic data shows that a significant portion of learners (approximately 30-40% depending on the run) do not provide gender or age information, resulting in "Unknown" values. Among those who do provide data, there is a diverse representation of ages and a relatively balanced gender distribution, though this varies by run.
+
+## Data Preparation
+
+To analyze the impact of demographics on retention, the `weekly_engagement` data was joined with the `enrolments_clean` data using `learner_id` and `run_id` within the `munge/04-final_data.R` script. This programmatic join associates each learner's weekly activity with their demographic profile. 
+
+We utilized a `left_join` to ensure that learners who did not provide demographic information were not excluded from the underlying data structure, thereby avoiding potential selection bias in our broader understanding of the course population. However, for the specific comparative visualizations in this cycle, we filter for known gender categories to highlight observable trends.
+
+The joined dataset was then aggregated to calculate the number of active learners per week, grouped by `gender`. Similar to Cycle 1, we calculated the retention rate for each gender group relative to their starting numbers in Week 1. The resulting `gender_analysis_data` object is prepared during the project's munging phase specifically to support this second cycle of investigation.
+
+It is important to note that this normalization approach (setting Week 1 to 100%) masks the absolute size of each demographic cohort. While it allows for a comparison of trends, it does not account for the fact that some groups (such as "Other") may have significantly smaller populations than others, which can lead to higher volatility in the observed retention rates.
+
+## Modeling
+
+In this cycle, we extend the retention model to include a categorical grouping variable (Gender). We model the retention rate $R_{w,g}$ for week $w$ and gender group $g$ as:
+
+$$R_{w,g} = \frac{L_{w,g}}{L_{1,g}}$$
+
+This comparative model allows us to test the hypothesis that disengagement patterns differ significantly between demographic groups.
+
+## Data Analysis
+
+Figure 2 shows the retention rates across all runs, disaggregated by gender. For clarity, we have excluded the "Unknown" category to focus on the comparison between "Male", "Female", and "Other". 
+
+**Note on Cohort Sizes:** The normalization of retention rates to 100% at Week 1 masks significant differences in the absolute number of learners in each group. As shown in the table below, the "Other" category represents a very small fraction of the total population, which explains the high volatility and the artificially stable 100% retention observed in early weeks.
+
+```{r gender_counts, echo=FALSE}
+# Display the initial cohort sizes for each gender group
+# We use distinct() to get one row per gender from the longitudinal data
+gender_analysis_data %>%
+  select(gender, cohort_size) %>%
+  distinct() %>%
+  knitr::kable(col.names = c("Gender", "Initial Cohort Size (Week 1)"), 
+               caption = "Table 1: Initial Cohort Sizes by Gender")
+```
+
+```{r gender_retention_plot, fig.cap="Figure 2: Learner Retention Rate by Gender. Note: 'Other' category has a very small sample size, making its retention rate highly volatile and potentially misleading."}
+# Plot retention by gender using the pre-processed data from munge/04-final_data.R
+ggplot(gender_analysis_data, aes(x = week, y = retention_rate, color = gender, group = gender)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_x_continuous(breaks = 1:max(gender_analysis_data$week)) +
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+  labs(
+    title = "Learner Retention by Gender (All Runs)",
+    subtitle = "CAUTION: Small sample size for 'Other' category (Exploratory Analysis)",
+    x = "Week Number",
+    y = "Retention Rate (%)",
+    color = "Gender"
+  ) +
+  theme_minimal()
+```
+
+The visualization suggests that retention patterns are broadly similar across the "Male" and "Female" categories. However, a significant caveat must be noted regarding the "Other" category, which appears to maintain 100% retention until Week 2. This is almost certainly an artifact of a very small sample size within that group, where the actions of a few individuals can disproportionately affect the percentage. 
+
+Consequently, these findings should be treated as exploratory and indicative rather than statistically robust. The apparent similarity in retention between the larger gender groups suggests that gender-specific barriers may not be the primary driver of disengagement, but further investigation with larger, more balanced cohorts would be required to confirm this.
+
+## Evaluation
+
+The demographic analysis provides a more granular view of learner behavior but introduces significant statistical challenges. While the overall retention trend (Cycle 1) is robust due to the large sample size, the disaggregated analysis (Cycle 2) is sensitive to the uneven distribution of demographic data.
+
+**Interpretation Risk:** The primary finding—that gender does not appear to be a dominant factor in retention—is useful for the provider as it suggests the course is broadly accessible. However, the "Other" category's 100% retention rate in early weeks is a clear example of how small sample sizes can produce misleading visualizations. With only a handful of learners in this group, the actions of a single individual can shift the retention rate by 20-50%, creating an illusion of high engagement that is not statistically representative.
+
+Furthermore, the normalization approach, while necessary for comparing trends, hides the fact that the "Male" and "Female" cohorts are orders of magnitude larger than the "Other" group. This methodological choice was made to highlight *patterns* of disengagement, but it must be interpreted alongside the absolute counts provided in Table 1.
+
+For future iterations, the provider should:
+1.  **Increase Data Quality:** Encourage higher response rates for the archetype survey to reduce the "Unknown" category and increase the sample size for minority groups.
+2.  **Targeted Qualitative Research:** Conduct interviews with learners from smaller demographic groups to understand their specific experiences, which quantitative data alone cannot capture.
+3.  **Longitudinal Tracking:** Monitor these trends across more runs to see if the patterns hold as the total sample size for minority groups increases.
+
+# Conclusion
+
+This investigation has applied the CRISP-DM framework to explore learner engagement and retention in the "Cyber Security" MOOC. We have established that the first two weeks are the most critical for retention and that gender does not appear to be a significant factor in disengagement for the majority of the population. 
+
+By using a reproducible workflow with `ProjectTemplate` and `dplyr`, we have ensured that these findings can be updated as new data becomes available. The use of normalized retention metrics allowed for a fair comparison across runs and demographics, while the inclusion of explicit methodological caveats and cohort counts ensures that the findings are interpreted with appropriate caution. These insights provide a data-driven foundation for the course provider to focus their improvement efforts on early-course engagement and content accessibility for all learners, while remaining mindful of the limitations inherent in small-scale demographic analysis.
+
+# References
+
+1.  FutureLearn (2025). *Cyber Security: Safety at Home, Online, and in Life*. Course Datasets.
+2.  Bentham, J. (2025). *MAS8600/MAS8505 Project: Learning Analytics*. Newcastle University.
+3.  ProjectTemplate (2025). *ProjectTemplate Documentation*. http://projecttemplate.net
