@@ -7,14 +7,14 @@ if(exists("weekly_engagement")) {
   
   # Calculate weekly summary statistics using dplyr
   dropoff_analysis <- weekly_engagement %>%
-    group_by(run_id, week_number) %>%
+    group_by(run_id, week) %>%
     summarise(
       learners_active = n_distinct(learner_id),
       avg_engagement_rate = mean(engagement_rate, na.rm = TRUE),
       .groups = "drop"
     ) %>%
     # Arrange by run and week to ensure correct lag calculations
-    arrange(run_id, week_number) %>%
+    arrange(run_id, week) %>%
     # Group by run to calculate retention relative to the start of each run
     group_by(run_id) %>%
     mutate(

@@ -23,8 +23,8 @@ for(run_num in 1:7) {
         # Standardize missing demographic values
         country = if_else(is.na(country) | country == "Unknown", "Unknown", country),
         age_range = if_else(is.na(age_range) | age_range == "Unknown", "Unknown", age_range),
-        # Handle gender column as mentioned in the report
-        gender = if_else(is.na(gender) | gender == "Unknown", "Unknown", gender)
+        # Handle gender column: normalize to lowercase to ensure consistency across runs
+        gender = if_else(is.na(gender) | gender == "Unknown", "Unknown", tolower(gender))
       ) %>%
       # Select only the columns needed for analysis to save memory
       select(learner_id, run_id, enrolled_at, is_completed, country, age_range, gender)

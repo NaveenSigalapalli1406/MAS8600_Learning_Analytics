@@ -18,8 +18,8 @@ for(run_num in 1:7) {
       # Determine if a learner was engaged in a step (either visited or completed)
       mutate(is_engaged = !is.na(first_visited_at) | !is.na(last_completed_at)) %>%
       # Group by learner and week to calculate engagement metrics
-      # Note: We use the 'week_number' column directly from the raw data
-      group_by(learner_id, run_id, week_number) %>%
+      # Note: We use the 'week_number' column from raw data but rename to 'week' for consistency
+      group_by(learner_id, run_id, week = week_number) %>%
       summarise(
         steps_engaged = sum(is_engaged, na.rm = TRUE),
         steps_available = n(),
