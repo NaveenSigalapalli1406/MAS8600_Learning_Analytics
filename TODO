@@ -13,8 +13,11 @@
 - [x] Include cohort size table (Table 1) in the report
 - [x] Add explicit "Interpretation Risk" section to Evaluation
 - [x] Add plot warnings (subtitle and caption) for small sample sizes
+- [x] Move Analysis_Report.Rmd to Report folder (singular) for strict compliance
 
 ## Remaining Steps
-- [ ] Run load.project() in R console to refresh cache with new logic
-- [ ] Final review of the generated Word document
-- [ ] Final Git commit and push
+- [x] Run load.project() in R console to refresh cache with new logic
+- [x] Final review of the generated Word document
+- [x] Final Git commit and push
+
+# Project Status: SUBMISSION READY

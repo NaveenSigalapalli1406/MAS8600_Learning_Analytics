@@ -12,7 +12,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 # Load the project using ProjectTemplate
-# Munging is set to TRUE in global.dcf to ensure all data preparation is updated
+# Munging is set to FALSE in global.dcf for the final submission to use cached data
 library(ProjectTemplate)
 load.project()
 ```

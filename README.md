@@ -4,7 +4,7 @@
 This project investigates learner engagement and retention patterns across seven runs of the Newcastle University MOOC *"Cyber Security: Safety at Home, Online, and in Life."* Using the CRISP-DM framework, the analysis explores overall retention trends (Cycle 1) and the impact of learner demographics on disengagement (Cycle 2). The project is built using `ProjectTemplate` to ensure reproducibility and follows best practices in data munging and visualization.
 
 ## Directory Map
-- **reports/Analysis_Report.Rmd**: The main R Markdown file containing the analysis and findings.
+- **Report/Analysis_Report.Rmd**: The main R Markdown file containing the analysis and findings.
 - **cache/**: Contains cached data objects (`weekly_engagement`, `gender_analysis_data`, etc.) to speed up report generation.
 - **config/**: Contains `global.dcf` for project configuration and package management.
 - **data/**: Contains the raw FutureLearn MOOC datasets (CSV files).
@@ -20,7 +20,7 @@ This project investigates learner engagement and retention patterns across seven
 4. Ensure the raw data files are located in the `data/` directory.
 
 ## Project Execution Instructions
-1. Open `reports/Analysis_Report.Rmd` in RStudio.
+1. Open `Report/Analysis_Report.Rmd` in RStudio.
 2. Click the **Knit** button to generate the final report (Word document).
 3. Alternatively, to load the preprocessed data into your R environment for exploration, run:
    ```r
