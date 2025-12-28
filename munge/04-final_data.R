@@ -18,6 +18,8 @@ if(exists("weekly_engagement") && exists("enrolments_clean")) {
       learners_active = n_distinct(learner_id),
       .groups = "drop"
     ) %>%
+    # Ensure data is sorted by week before calculating cohort size
+    arrange(gender, week) %>%
     group_by(gender) %>%
     mutate(
       # Initial cohort size (Week 1)
@@ -29,6 +31,24 @@ if(exists("weekly_engagement") && exists("enrolments_clean")) {
     
   # Cache the final joined data for the report
   cache("gender_analysis_data")
+  
+  # Prepare Age Range analysis data
+  age_analysis_data <- weekly_engagement %>%
+    left_join(enrolments_clean, by = c("learner_id", "run_id")) %>%
+    # Filter out Unknown age for clearer comparison
+    filter(age_range != "Unknown") %>%
+    group_by(week, age_range) %>%
+    summarise(
+      learners_active = n_distinct(learner_id),
+      .groups = "drop"
+    ) %>%
+    arrange(age_range, week) %>%
+    group_by(age_range) %>%
+    mutate(
+      cohort_size = first(learners_active),
+      retention_rate = learners_active / cohort_size
+    ) %>%
+    ungroup()
     
-  # Note: This object will be cached and available for the R Markdown report
+  cache("age_analysis_data")
 }

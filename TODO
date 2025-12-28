@@ -13,7 +13,7 @@
 - [x] Include cohort size table (Table 1) in the report
 - [x] Add explicit "Interpretation Risk" section to Evaluation
 - [x] Add plot warnings (subtitle and caption) for small sample sizes
-- [x] Move Analysis_Report.Rmd to Report folder (singular) for strict compliance
+- [x] Move Analysis_Report.Rmd to reports folder (plural) for standard ProjectTemplate compliance
 
 ## Remaining Steps
 - [x] Run load.project() in R console to refresh cache with new logic
